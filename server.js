@@ -446,6 +446,16 @@ async function handleApi(req, res, url) {
     return sendJSON(res, 200, { stories: await searchStories(q) });
   }
 
+  if (req.method === 'GET' && p === '/api/item') {
+    const id = Number(url.searchParams.get('id'));
+    if (!id) return sendJSON(res, 400, { error: 'Missing id' });
+    const it = await fetchJSON(`${API}/item/${id}.json`).catch(() => null);
+    if (!it || it.deleted || it.dead || !it.title) {
+      return sendJSON(res, 404, { error: 'Story not found.' });
+    }
+    return sendJSON(res, 200, { story: stripped(it) });
+  }
+
   if (req.method === 'GET' && p === '/api/read') {
     const target = url.searchParams.get('url') || '';
     if (!target) return sendJSON(res, 400, { error: 'Missing url' });
@@ -549,10 +559,14 @@ http
       } catch (e) {
         sendJSON(res, 400, { error: e.message || 'Request failed' });
       }
+    } else if (/^\/s\/\d+\/?$/.test(url.pathname)) {
+      // Shareable deep link to a single story — serve the app, which reads the
+      // id off the path and opens that story in the reader pane.
+      serveStatic(res, '/');
     } else {
       serveStatic(res, url.pathname);
     }
   })
   .listen(PORT, HOST, () => {
-    console.log(`Firsthand running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+    console.log(`Delurk HN running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
   });

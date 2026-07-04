@@ -65,6 +65,14 @@ Clicking a story opens a reading pane with a segmented control:
   **locked until you post your take** — the whole point of the app — and opens
   automatically the moment you do.
 
+## Sharing
+
+Every open story has a **Share** button that copies a Delurk link —
+`https://your-host/s/<id>` — and the address bar tracks the story you're
+reading, so it's shareable too. Opening someone's Delurk link lands the
+recipient in the same herd-muted view: article on one side, composer on the
+other, and the discussion still locked until they post their own take.
+
 ## Caveats
 
 - Reader extraction is a zero-dep heuristic, not Readability — it does well on

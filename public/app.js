@@ -15,6 +15,7 @@ const els = {
   reader: document.getElementById('reader'),
   readerTitle: document.getElementById('readerTitle'),
   readerViews: document.getElementById('readerViews'),
+  readerShare: document.getElementById('readerShare'),
   readerPop: document.getElementById('readerPop'),
   readerClose: document.getElementById('readerClose'),
   readerContent: document.getElementById('readerContent'),
@@ -206,9 +207,20 @@ function refreshRow(id) {
 // ---------- reader pane ----------
 
 let readerSeq = 0;
+// Set while syncing UI to a history event, so open/close don't re-push state.
+let suppressHistory = false;
+
+function shareLink(id) {
+  return `${location.origin}/s/${id}`;
+}
 
 function openReader(s) {
+  state.openStory = s;
   state.openId = s.id;
+  // Keep the address bar pointing at this story so it's always shareable.
+  if (!suppressHistory && location.pathname !== `/s/${s.id}`) {
+    history.pushState({ storyId: s.id }, '', `/s/${s.id}`);
+  }
   els.list.querySelectorAll('.story.selected').forEach((n) => n.classList.remove('selected'));
   els.list.querySelector(`.story[data-id="${s.id}"]`)?.classList.add('selected');
   els.split.classList.add('open');
@@ -386,13 +398,39 @@ function renderComment(c) {
 
 function closeReader() {
   state.openId = null;
+  state.openStory = null;
   state.readerMode = null;
+  if (!suppressHistory && /^\/s\/\d+/.test(location.pathname)) {
+    history.pushState({}, '', '/');
+  }
   els.split.classList.remove('open');
   els.reader.hidden = true;
   els.readerContent.innerHTML = '';
   els.readerViews.innerHTML = '';
   els.readerFooter.innerHTML = '';
   els.list.querySelectorAll('.story.selected').forEach((n) => n.classList.remove('selected'));
+}
+
+// Open a story given only its id (used by deep links and the back/forward
+// buttons). Reuses the loaded list item when present, else fetches it.
+async function openStoryById(id) {
+  let s = state.stories.find((x) => x.id === id);
+  if (!s) {
+    try {
+      const j = await api('/api/item?id=' + id);
+      s = j.story;
+    } catch {
+      return; // unknown/dead id: leave the feed as-is
+    }
+  }
+  openReader(s);
+}
+
+function sharedStoryId() {
+  const m = location.pathname.match(/^\/s\/(\d+)/);
+  if (m) return Number(m[1]);
+  const q = new URLSearchParams(location.search).get('story');
+  return q ? Number(q) : null;
 }
 
 function renderReaderFooter(s) {
@@ -651,6 +689,38 @@ document.addEventListener('keydown', (e) => {
 
 els.readerClose.addEventListener('click', closeReader);
 
+els.readerShare.addEventListener('click', async () => {
+  if (state.openId == null) return;
+  const link = shareLink(state.openId);
+  const orig = els.readerShare.textContent;
+  const flash = (msg) => {
+    els.readerShare.textContent = msg;
+    setTimeout(() => {
+      els.readerShare.textContent = orig;
+    }, 1600);
+  };
+  try {
+    await navigator.clipboard.writeText(link);
+    flash('Copied ✓');
+  } catch {
+    // Clipboard blocked (e.g. insecure context): fall back to a prompt.
+    window.prompt('Copy this Delurk link:', link);
+  }
+});
+
+// Back/forward buttons: sync the reader to whatever the URL now points at,
+// without pushing new history entries of our own.
+window.addEventListener('popstate', async () => {
+  suppressHistory = true;
+  try {
+    const id = sharedStoryId();
+    if (id) await openStoryById(id);
+    else closeReader();
+  } finally {
+    suppressHistory = false;
+  }
+});
+
 els.more.addEventListener('click', () => {
   state.page += 1;
   loadFeed(false);
@@ -670,4 +740,12 @@ els.introDismiss.addEventListener('click', () => {
     setUser(null);
   }
   loadFeed(true);
+  // If we arrived on a /s/<id> share link, open that story straight away.
+  const shared = sharedStoryId();
+  if (shared) {
+    suppressHistory = true; // URL already correct — don't push a duplicate
+    openStoryById(shared).finally(() => {
+      suppressHistory = false;
+    });
+  }
 })();

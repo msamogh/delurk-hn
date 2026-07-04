@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delurk HN — stop lurking, start thinking</title>
+  <meta name="description" content="Hacker News with the herd muted: no points, no comment counts, no threads. Write your own take first — the discussion unlocks after you post.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <div class="brand">
+        <span class="mark">D</span> Delurk HN
+        <span class="tagline">no points · no comment counts · threads stay locked until you post</span>
+      </div>
+      <div class="account">
+        <button id="loginBtn" class="ghost">Log in to HN</button>
+        <span id="whoami" hidden>
+          <span id="username"></span>
+          <button id="logoutBtn" class="ghost">log out</button>
+        </span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <nav id="tabs">
+        <button data-feed="top" class="active">Top</button>
+        <button data-feed="new">New</button>
+        <button data-feed="best">Best</button>
+        <button data-feed="ask">Ask</button>
+        <button data-feed="show">Show</button>
+        <button data-feed="mine">My takes</button>
+      </nav>
+      <input id="q" type="search"
+             placeholder="Type to filter · press Enter to search all of HN"
+             autocomplete="off">
+    </div>
+    <div id="banner" hidden></div>
+  </header>
+
+  <section id="intro">
+    <div class="intro-inner">
+      <p><strong>This is Hacker News with the herd muted.</strong>
+      No points, no comment counts, no threads — so nobody's opinion reaches you
+      before your own. Pick a story, write your take, and it's posted straight to
+      HN as your comment. Only then does the real thread unlock, and you can see
+      how your view stacks up.</p>
+      <button id="introDismiss" class="ghost">Got it</button>
+    </div>
+  </section>
+
+  <div id="split">
+    <div id="listPane">
+      <main id="list" aria-live="polite"></main>
+      <div id="moreWrap"><button id="more" class="ghost">Load more</button></div>
+    </div>
+    <aside id="reader" hidden>
+      <div class="reader-bar">
+        <span id="readerTitle"></span>
+        <div id="readerViews" class="seg"></div>
+        <a id="readerPop" target="_blank" rel="noopener" title="Open in a new tab">open ↗</a>
+        <button id="readerClose" class="ghost" title="Close reader">✕</button>
+      </div>
+      <div id="readerContent"></div>
+      <div id="readerFooter"></div>
+    </aside>
+  </div>
+
+  <dialog id="loginDialog">
+    <form id="loginForm">
+      <h3>Log in to Hacker News</h3>
+      <label>Username
+        <input name="username" autocomplete="username" required>
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <p class="fineprint">
+        Your credentials are forwarded once, directly to news.ycombinator.com over HTTPS,
+        to obtain your HN session cookie. The server keeps nothing — the session lives
+        only in your browser. Prefer not to trust a hosted instance? Run it locally:
+        the whole app is one Node file.
+      </p>
+      <p id="loginError" class="error" hidden></p>
+      <div class="dialog-row">
+        <button type="button" id="loginCancel" class="ghost">Cancel</button>
+        <button type="submit" class="primary" id="loginSubmit">Log in</button>
+      </div>
+    </form>
+
+    <details id="cookieLogin">
+      <summary>Stuck on a captcha? Use your existing HN session instead</summary>
+      <div class="cookie-body">
+        <p class="fineprint">
+          HN blocks password logins it thinks are automated. Skip it: log in at
+          <a href="https://news.ycombinator.com/login" target="_blank" rel="noopener">news.ycombinator.com</a>
+          in a normal tab (solving any captcha there), then hand this app the
+          session you just created — your password never comes here.
+        </p>
+        <ol class="fineprint steps">
+          <li>On news.ycombinator.com (logged in), open your browser's DevTools
+            (right-click → Inspect).</li>
+          <li>Application/Storage → Cookies → <code>https://news.ycombinator.com</code>.</li>
+          <li>Copy the whole <b>Value</b> of the <code>user</code> cookie
+            (looks like <code>yourname&amp;a1b2c3…</code>).</li>
+        </ol>
+        <form id="cookieForm">
+          <label>Paste the <code>user</code> cookie value
+            <input name="cookie" placeholder="yourname&amp;a1b2c3…" autocomplete="off">
+          </label>
+          <p id="cookieError" class="error" hidden></p>
+          <div class="dialog-row">
+            <button type="submit" class="primary" id="cookieSubmit">Use this session</button>
+          </div>
+        </form>
+      </div>
+    </details>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
